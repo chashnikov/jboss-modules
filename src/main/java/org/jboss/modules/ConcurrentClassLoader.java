@@ -20,6 +20,7 @@ package org.jboss.modules;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
@@ -42,9 +43,17 @@ public abstract class ConcurrentClassLoader extends ClassLoader {
     private static final ThreadLocal<Boolean> GET_PACKAGE_SUPPRESSOR = new ThreadLocal<Boolean>();
 
     static {
-        if (! ClassLoader.registerAsParallelCapable()) {
+        boolean parallelOk = true;
+        try {
+            Method registerAsParallelCapable = ClassLoader.class.getDeclaredMethod("registerAsParallelCapable");
+            registerAsParallelCapable.setAccessible(true);
+            parallelOk = (Boolean) registerAsParallelCapable.invoke(null);
+        } catch (Throwable ignored) {
+        }
+        if (!parallelOk) {
             throw new Error("Failed to register " + ConcurrentClassLoader.class.getName() + " as parallel-capable");
         }
+
         /*
          This resolves a known deadlock that can occur if one thread is in the process of defining a package as part of
          defining a class, and another thread is defining the system package that can result in loading a class.  One holds
@@ -66,9 +75,6 @@ public abstract class ConcurrentClassLoader extends ClassLoader {
      */
     protected ConcurrentClassLoader(final ConcurrentClassLoader parent) {
         super(parent == null ? ConcurrentClassLoader.class.getClassLoader() : parent);
-        if (getClassLoadingLock("$TEST$") == this) {
-            throw new Error("Cannot instantiate non-parallel subclass");
-        }
     }
 
     /**
@@ -76,9 +82,6 @@ public abstract class ConcurrentClassLoader extends ClassLoader {
      */
     protected ConcurrentClassLoader() {
         super(ConcurrentClassLoader.class.getClassLoader());
-        if (getClassLoadingLock("$TEST$") == this) {
-            throw new Error("Cannot instantiate non-parallel subclass");
-        }
     }
 
     /**

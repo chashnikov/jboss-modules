@@ -1,7 +1,6 @@
 package org.jboss.modules;
 
 import java.io.File;
-import java.nio.file.*;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,10 +10,10 @@ import java.util.Map;
  * @author Tomaz Cerar (c) 2014 Red Hat Inc.
  */
 final class MavenSettings {
-    private Path localRepository;
-    private final List<String> remoteRepositories = new LinkedList<>();
-    private final Map<String, Profile> profiles = new HashMap<>();
-    private final List<String> activeProfileNames = new LinkedList<>();
+    private File localRepository;
+    private final List<String> remoteRepositories = new LinkedList<String>();
+    private final Map<String, Profile> profiles = new HashMap<String, Profile>();
+    private final List<String> activeProfileNames = new LinkedList<String>();
 
     MavenSettings() {
         configureDefaults();
@@ -26,12 +25,12 @@ final class MavenSettings {
         String localRepositoryPath = System.getProperty("local.maven.repo.path");
         if (localRepositoryPath != null) {
             System.out.println("Please use 'maven.repo.local' instead of 'local.maven.repo.path'");
-            localRepository = java.nio.file.Paths.get(localRepositoryPath.split(File.pathSeparator)[0]);
+            localRepository = new File(localRepositoryPath.split(File.pathSeparator)[0]);
         }
 
         localRepositoryPath = System.getProperty("maven.repo.local");
         if (localRepositoryPath != null) {
-            localRepository = java.nio.file.Paths.get(localRepositoryPath);
+            localRepository = new File(localRepositoryPath);
         }
         String remoteRepository = System.getProperty("remote.maven.repo");
         if (remoteRepository != null) {
@@ -42,11 +41,11 @@ final class MavenSettings {
         }
     }
 
-    public void setLocalRepository(Path localRepository) {
+    public void setLocalRepository(File localRepository) {
         this.localRepository = localRepository;
     }
 
-    public Path getLocalRepository() {
+    public File getLocalRepository() {
         return localRepository;
     }
 
@@ -74,7 +73,7 @@ final class MavenSettings {
 
     static final class Profile {
         private String id;
-        final List<String> repositories = new LinkedList<>();
+        final List<String> repositories = new LinkedList<String>();
 
         Profile() {
 

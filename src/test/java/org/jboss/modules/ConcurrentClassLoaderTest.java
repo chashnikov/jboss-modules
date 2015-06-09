@@ -25,6 +25,7 @@ import org.jboss.modules.test.ClassD;
 import org.jboss.modules.util.Util;
 import org.junit.Test;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -90,7 +91,9 @@ public class ConcurrentClassLoaderTest {
         static {
             boolean parallelOk = true;
             try {
-                parallelOk = ClassLoader.registerAsParallelCapable();
+                Method registerAsParallelCapable = ClassLoader.class.getDeclaredMethod("registerAsParallelCapable");
+                registerAsParallelCapable.setAccessible(true);
+                parallelOk = (Boolean) registerAsParallelCapable.invoke(null);
             } catch (Throwable ignored) {
             }
             if (! parallelOk) {

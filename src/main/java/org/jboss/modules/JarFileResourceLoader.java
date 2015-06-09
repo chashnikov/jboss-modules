@@ -65,7 +65,7 @@ final class JarFileResourceLoader extends AbstractResourceLoader implements Iter
     private final File fileOfJar;
 
     // protected by {@code this}
-    private final Map<CodeSigners, CodeSource> codeSources = new HashMap<>();
+    private final Map<CodeSigners, CodeSource> codeSources = new HashMap<CodeSigners, CodeSource>();
 
     JarFileResourceLoader(final String rootName, final JarFile jarFile) {
         this(rootName, jarFile, null);

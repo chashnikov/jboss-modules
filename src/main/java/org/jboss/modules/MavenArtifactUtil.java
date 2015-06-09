@@ -25,16 +25,9 @@ import static org.jboss.modules.xml.XmlPullParser.END_TAG;
 import static org.jboss.modules.xml.XmlPullParser.FEATURE_PROCESS_NAMESPACES;
 import static org.jboss.modules.xml.XmlPullParser.START_TAG;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 import org.jboss.modules.xml.MXParser;
@@ -60,20 +53,20 @@ class MavenArtifactUtil {
         synchronized (settingLoaderMutex) {
             MavenSettings settings = new MavenSettings();
 
-            Path m2 = java.nio.file.Paths.get(System.getProperty("user.home"), ".m2");
-            Path settingsPath = m2.resolve("settings.xml");
+            File m2 = new File(System.getProperty("user.home"), ".m2");
+            File settingsPath = new File(m2, "settings.xml");
 
-            if (Files.notExists(settingsPath)) {
+            if (!settingsPath.exists()) {
                 String mavenHome = System.getenv("M2_HOME");
                 if (mavenHome != null) {
-                    settingsPath = java.nio.file.Paths.get(mavenHome, "conf", "settings.xml");
+                    settingsPath = new File(mavenHome, "conf/settings.xml");
                 }
             }
-            if (Files.exists(settingsPath)) {
+            if (settingsPath.exists()) {
                 parseSettingsXml(settingsPath, settings);
             }
             if (settings.getLocalRepository() == null) {
-                Path repository = m2.resolve("repository");
+                File repository = new File(m2, "repository");
                 settings.setLocalRepository(repository);
             }
             settings.resolveActiveSettings();
@@ -82,21 +75,19 @@ class MavenArtifactUtil {
         }
     }
 
-    private static MavenSettings parseSettingsXml(Path settings, MavenSettings mavenSettings) throws IOException {
+    private static MavenSettings parseSettingsXml(File settings, MavenSettings mavenSettings) throws IOException {
         try {
             final MXParser reader = new MXParser();
             reader.setFeature(FEATURE_PROCESS_NAMESPACES, false);
-            InputStream source = Files.newInputStream(settings, StandardOpenOption.READ);
+            InputStream source = new BufferedInputStream(new FileInputStream(settings));
             reader.setInput(source, null);
             int eventType;
             while ((eventType = reader.next()) != END_DOCUMENT) {
                 switch (eventType) {
                     case START_TAG: {
-                        switch (reader.getName()) {
-                            case "settings": {
-                                parseSettings(reader, mavenSettings);
-                                break;
-                            }
+                        String s = reader.getName();
+                        if (s.equals("settings")) {
+                            parseSettings(reader, mavenSettings);
                         }
                     }
                     default: {
@@ -120,47 +111,51 @@ class MavenArtifactUtil {
                 }
                 case START_TAG: {
 
-                    switch (reader.getName()) {
-                        case "localRepository": {
-                            String localRepository = reader.nextText();
-                            mavenSettings.setLocalRepository(java.nio.file.Paths.get(localRepository));
-                            break;
-                        }
-                        case "profiles": {
-                            while ((eventType = reader.nextTag()) != END_DOCUMENT) {
-                                if (eventType == START_TAG) {
-                                    switch (reader.getName()) {
-                                        case "profile": {
-                                            parseProfile(reader, mavenSettings);
-                                            break;
-                                        }
-                                    }
-                                } else {
-                                    break;
+                    String s1 = reader.getName();
+                    if (s1.equals("localRepository")) {
+                        String localRepository = reader.nextText();
+                        mavenSettings.setLocalRepository(new File(localRepository));
+                        while ((eventType = reader.nextTag()) != END_DOCUMENT) {
+                            if (eventType == START_TAG) {
+                                String s = reader.getName();
+                                if (s.equals("profile")) {
+                                    parseProfile(reader, mavenSettings);
                                 }
                             }
-                            break;
-                        }
-                        case "activeProfiles": {
-                            while ((eventType = reader.nextTag()) != END_DOCUMENT) {
-                                if (eventType == START_TAG) {
-                                    switch (reader.getName()) {
-                                        case "activeProfile": {
-                                            mavenSettings.addActiveProfile(reader.nextText());
-                                            break;
-                                        }
-                                    }
-                                } else {
-                                    break;
-                                }
-
+                            else {
+                                break;
                             }
-                            break;
                         }
-                        default: {
-                            skip(reader);
+                    }
+                    else if (s1.equals("profiles")) {
+                        while ((eventType = reader.nextTag()) != END_DOCUMENT) {
+                            if (eventType == START_TAG) {
+                                String s = reader.getName();
+                                if (s.equals("profile")) {
+                                    parseProfile(reader, mavenSettings);
+                                }
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                    }
+                    else if (s1.equals("activeProfiles")) {
+                        while ((eventType = reader.nextTag()) != END_DOCUMENT) {
+                            if (eventType == START_TAG) {
+                                String s = reader.getName();
+                                if (s.equals("activeProfile")) {
+                                    mavenSettings.addActiveProfile(reader.nextText());
+                                }
+                            }
+                            else {
+                                break;
+                            }
 
                         }
+                    }
+                    else {
+                        skip(reader);
                     }
                     break;
                 }
@@ -177,30 +172,38 @@ class MavenArtifactUtil {
         MavenSettings.Profile profile = new MavenSettings.Profile();
         while ((eventType = reader.nextTag()) != END_DOCUMENT) {
             if (eventType == START_TAG) {
-                switch (reader.getName()) {
-                    case "id": {
-                        profile.setId(reader.nextText());
-                        break;
-                    }
-                    case "repositories": {
-                        while ((eventType = reader.nextTag()) != END_DOCUMENT) {
-                            if (eventType == START_TAG) {
-                                switch (reader.getName()) {
-                                    case "repository": {
-                                        parseRepository(reader, profile);
-                                        break;
-                                    }
-                                }
-                            } else {
-                                break;
+                String s1 = reader.getName();
+                if (s1.equals("id")) {
+                    profile.setId(reader.nextText());
+                    while ((eventType = reader.nextTag()) != END_DOCUMENT) {
+                        if (eventType == START_TAG) {
+                            String s = reader.getName();
+                            if (s.equals("repository")) {
+                                parseRepository(reader, profile);
                             }
-
                         }
-                        break;
+                        else {
+                            break;
+                        }
+
                     }
-                    default: {
-                        skip(reader);
+                }
+                else if (s1.equals("repositories")) {
+                    while ((eventType = reader.nextTag()) != END_DOCUMENT) {
+                        if (eventType == START_TAG) {
+                            String s = reader.getName();
+                            if (s.equals("repository")) {
+                                parseRepository(reader, profile);
+                            }
+                        }
+                        else {
+                            break;
+                        }
+
                     }
+                }
+                else {
+                    skip(reader);
                 }
             } else {
                 break;
@@ -213,14 +216,12 @@ class MavenArtifactUtil {
         int eventType;
         while ((eventType = reader.nextTag()) != END_DOCUMENT) {
             if (eventType == START_TAG) {
-                switch (reader.getName()) {
-                    case "url": {
-                        profile.addRepository(reader.nextText());
-                        break;
-                    }
-                    default: {
-                        skip(reader);
-                    }
+                String s = reader.getName();
+                if (s.equals("url")) {
+                    profile.addRepository(reader.nextText());
+                }
+                else {
+                    skip(reader);
                 }
             } else {
                 break;
@@ -278,14 +279,14 @@ class MavenArtifactUtil {
 
         String artifactRelativePath = relativeArtifactPath(groupId, artifactId, version);
         final MavenSettings settings = getSettings();
-        final Path localRepository = settings.getLocalRepository();
+        final File localRepository = settings.getLocalRepository();
 
         // serialize artifact lookup because we want to prevent parallel download
         synchronized (artifactLock) {
             String jarPath = artifactRelativePath + classifier + ".jar";
-            Path fp = java.nio.file.Paths.get(localRepository.toString(), jarPath);
-            if (Files.exists(fp)) {
-                return fp.toFile();
+            File fp = new File(localRepository.toString(), jarPath);
+            if (fp.exists()) {
+                return fp;
             }
 
             List<String> remoteRepos = mavenSettings.getRemoteRepositories();
@@ -293,8 +294,8 @@ class MavenArtifactUtil {
                 return null;
             }
 
-            final File jarFile = new File(localRepository.toFile(), jarPath);
-            final File pomFile = new File(localRepository.toFile(), artifactRelativePath + ".pom");
+            final File jarFile = new File(localRepository, jarPath);
+            final File pomFile = new File(localRepository, artifactRelativePath + ".pom");
             for (String remoteRepository : remoteRepos) {
                 try {
                     String remotePomPath = remoteRepository + artifactRelativePath + ".pom";
@@ -340,7 +341,11 @@ class MavenArtifactUtil {
             FileOutputStream fos = new FileOutputStream(dest);
             try {
                 if (message) { System.out.println("Downloading " + artifact); }
-                Files.copy(bis,dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                byte[] buf = new byte[16 * 1024];
+                int len;
+                while ((len = bis.read(buf)) > 0) {
+                    fos.write(buf, 0, len);
+                }
             } finally {
                 StreamUtil.safeClose(fos);
             }

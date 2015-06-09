@@ -18,6 +18,7 @@
 
 package org.jboss.modules;
 
+import java.lang.reflect.Method;
 import java.security.PermissionCollection;
 import java.security.ProtectionDomain;
 import java.util.IdentityHashMap;
@@ -56,7 +57,9 @@ public class ModuleClassLoader extends ConcurrentClassLoader {
     static {
         boolean parallelOk = true;
         try {
-            parallelOk = ClassLoader.registerAsParallelCapable();
+            Method registerAsParallelCapable = ClassLoader.class.getDeclaredMethod("registerAsParallelCapable");
+            registerAsParallelCapable.setAccessible(true);
+            parallelOk = (Boolean) registerAsParallelCapable.invoke(null);
         } catch (Throwable ignored) {
         }
         if (! parallelOk) {
@@ -69,7 +72,7 @@ public class ModuleClassLoader extends ConcurrentClassLoader {
     private final Module module;
     private final ClassFileTransformer transformer;
 
-    private final AtomicReference<Paths<ResourceLoader, ResourceLoaderSpec>> paths = new AtomicReference<>(Paths.<ResourceLoader, ResourceLoaderSpec>none());
+    private final AtomicReference<Paths<ResourceLoader, ResourceLoaderSpec>> paths = new AtomicReference<Paths<ResourceLoader, ResourceLoaderSpec>>(Paths.<ResourceLoader, ResourceLoaderSpec>none());
 
     private final LocalLoader localLoader = new IterableLocalLoader() {
         public Class<?> loadClassLocal(final String name, final boolean resolve) {
@@ -111,7 +114,7 @@ public class ModuleClassLoader extends ConcurrentClassLoader {
      */
     protected ModuleClassLoader(final Configuration configuration) {
         module = configuration.getModule();
-        paths.lazySet(new Paths<>(configuration.getResourceLoaders(), Collections.<String, List<ResourceLoader>>emptyMap()));
+        paths.lazySet(new Paths<ResourceLoader, ResourceLoaderSpec>(configuration.getResourceLoaders(), Collections.<String, List<ResourceLoader>>emptyMap()));
         final AssertionSetting setting = configuration.getAssertionSetting();
         if (setting != AssertionSetting.INHERIT) {
             setDefaultAssertionStatus(setting == AssertionSetting.ENABLED);
@@ -159,7 +162,7 @@ public class ModuleClassLoader extends ConcurrentClassLoader {
                 }
             }
         }
-        return this.paths.compareAndSet(paths, new Paths<>(resourceLoaders, allPaths));
+        return this.paths.compareAndSet(paths, new Paths<ResourceLoader, ResourceLoaderSpec>(resourceLoaders, allPaths));
     }
 
     /**

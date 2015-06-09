@@ -99,7 +99,7 @@ public class NativeLibraryResourceLoader extends AbstractResourceLoader {
                     }
                     // Next, our CPU ID and its compatible variants.
                     boolean knownCpu = true;
-                    ArrayList<String> cpuNames = new ArrayList<>();
+                    ArrayList<String> cpuNames = new ArrayList<String>();
 
                     String cpuName = System.getProperty("jboss.modules.cpu-name");
                     if (cpuName == null) {
@@ -211,28 +211,87 @@ public class NativeLibraryResourceLoader extends AbstractResourceLoader {
                             }
 
                             if (knownCpu) {
-                                switch (cpuName) {
-                                    case "i686": cpuNames.add("i686");
-                                    case "i586": cpuNames.add("i586");
-                                    case "i486": cpuNames.add("i486");
-                                    case "i386": cpuNames.add("i386");
-                                        break;
-                                    case "armv7a": cpuNames.add("armv7a"); if (hf) break;
-                                    case "armv6":  cpuNames.add("armv6"); if (hf) break;
-                                    case "armv5t": cpuNames.add("armv5t");
-                                    case "armv5":  cpuNames.add("armv5");
-                                    case "armv4t": cpuNames.add("armv4t");
-                                    case "armv4":  cpuNames.add("armv4");
-                                        break;
-                                    case "armv5t-iwmmx2": cpuNames.add("armv5t-iwmmx2");
-                                    case "armv5t-iwmmx":  cpuNames.add("armv5t-iwmmx");
-                                                          cpuNames.add("armv5t");
-                                                          cpuNames.add("armv5");
-                                                          cpuNames.add("armv4t");
-                                                          cpuNames.add("armv4");
-                                        break;
-                                    default: cpuNames.add(cpuName);
-                                        break;
+                                if (cpuName.equals("i686")) {
+                                    cpuNames.add("i686");
+                                    cpuNames.add("i586");
+                                    cpuNames.add("i486");
+                                    cpuNames.add("i386");
+
+                                }
+                                else if (cpuName.equals("i586")) {
+                                    cpuNames.add("i586");
+                                    cpuNames.add("i486");
+                                    cpuNames.add("i386");
+
+                                }
+                                else if (cpuName.equals("i486")) {
+                                    cpuNames.add("i486");
+                                    cpuNames.add("i386");
+
+                                }
+                                else if (cpuName.equals("i386")) {
+                                    cpuNames.add("i386");
+
+                                }
+                                else if (cpuName.equals("armv7a")) {
+                                    cpuNames.add("armv7a");
+                                    if (!hf) {
+                                        cpuNames.add("armv6");
+                                        cpuNames.add("armv5t");
+                                        cpuNames.add("armv5");
+                                        cpuNames.add("armv4t");
+                                        cpuNames.add("armv4");
+                                    }
+                                }
+                                else if (cpuName.equals("armv6")) {
+                                    cpuNames.add("armv6");
+                                    if (!hf) {
+                                        cpuNames.add("armv5t");
+                                        cpuNames.add("armv5");
+                                        cpuNames.add("armv4t");
+                                        cpuNames.add("armv4");
+                                    }
+                                }
+                                else if (cpuName.equals("armv5t")) {
+                                    cpuNames.add("armv5t");
+                                    cpuNames.add("armv5");
+                                    cpuNames.add("armv4t");
+                                    cpuNames.add("armv4");
+
+                                }
+                                else if (cpuName.equals("armv5")) {
+                                    cpuNames.add("armv5");
+                                    cpuNames.add("armv4t");
+                                    cpuNames.add("armv4");
+
+                                }
+                                else if (cpuName.equals("armv4t")) {
+                                    cpuNames.add("armv4t");
+                                    cpuNames.add("armv4");
+
+                                }
+                                else if (cpuName.equals("armv4")) {
+                                    cpuNames.add("armv4");
+
+                                }
+                                else if (cpuName.equals("armv5t-iwmmx2")) {
+                                    cpuNames.add("armv5t-iwmmx2");
+                                    cpuNames.add("armv5t-iwmmx");
+                                    cpuNames.add("armv5t");
+                                    cpuNames.add("armv5");
+                                    cpuNames.add("armv4t");
+                                    cpuNames.add("armv4");
+                                }
+                                else if (cpuName.equals("armv5t-iwmmx")) {
+                                    cpuNames.add("armv5t-iwmmx");
+                                    cpuNames.add("armv5t");
+                                    cpuNames.add("armv5");
+                                    cpuNames.add("armv4t");
+                                    cpuNames.add("armv4");
+                                }
+                                else {
+                                    cpuNames.add(cpuName);
+
                                 }
                                 if (hf || be) for (int i = 0; i < cpuNames.size(); i++) {
                                     String name = cpuNames.get(i);
